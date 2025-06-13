@@ -206,7 +206,8 @@ def grow_r(e: Element):
         else:
             remaining_space -= c.width if e.horizontal else c.height
 
-    while remaining_space > 0 and grow_children:
+    # Prevent the loop from going again with tiny tiny amounts of space left due to floating point error
+    while remaining_space > 1 and grow_children:
         num_partitions = sum(c.sizing for c in grow_children)
         # Keep track of the children who hit their max size during each iter
         ms_children = []
