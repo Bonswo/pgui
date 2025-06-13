@@ -102,6 +102,7 @@ def update_elements_r(e: Element):
     size_main_axis_r(e)
     grow_r(e)
     size_cross_axis_r(e)
+    stretch_r(e)
 
     # Make their surfaces
     make_surface_r(e)
@@ -117,7 +118,7 @@ def size_main_axis_r(e: Element):
         return
 
     # Skip grow elements
-    if e.sizing > 0:
+    elif e.sizing > 0:
         if e.horizontal:
             e.width = 0 # Setter clamps value for us
         else:
@@ -126,18 +127,19 @@ def size_main_axis_r(e: Element):
 
     # Shrink element
     ## Get total size of children along main-axis
-    if e.horizontal:
-        content_size = 0 # TODO: Padding and child gap
-        for c in e.children:
-            content_size += c.width
-
-        e.width = content_size
     else:
-        content_size = 0 # TODO: Padding and child gap
-        for c in e.children:
-            content_size += c.height
+        if e.horizontal:
+            content_size = sum(e.padding[:2]) + e.child_gap * (len(e.children) - 1)
+            for c in e.children:
+                content_size += c.width
 
-        e.height = content_size
+            e.width = content_size
+        else:
+            content_size = sum(e.padding[2:]) + e.child_gap * (len(e.children) - 1)
+            for c in e.children:
+                content_size += c.height
+
+            e.height = content_size
 
 def size_cross_axis_r(e: Element):
     """DFPO fit elements cross axis wise"""
@@ -149,15 +151,18 @@ def size_cross_axis_r(e: Element):
 
     # Fit on cross axis
     if e.horizontal:
-        e.height = max(c.height for c in e.children) # TODO: Padding
+        e.height = max(c.height for c in e.children) + sum(e.padding[2:])
     else:
-        e.width = max(c.width for c in e.children)
+        e.width = max(c.width for c in e.children) + sum(e.padding[:2])
 
 def stretch_r(e: Element):
     """Recursivly stretch children"""
-    if e.align == 3:
+    if e.align == 3 and not e.sizing == -1: # shrink overrides align
         for c in e.children:
-            c.height = e.height # TODO: Padding
+            if e.horizontal:
+                c.height = e.height - sum(e.padding[2:])
+            else:
+                c.width = e.width - sum(e.padding[:2])
 
     for c in e.children:
         stretch_r(c)
@@ -165,10 +170,18 @@ def stretch_r(e: Element):
 def grow_r(e: Element):
     """Recursively grow children along the main axis of `e`"""
     # Calculate remaining space and find children to grow
-    remaining_space = 0 # TODO: Padding and child gap
+    if len(e.children) == 0:
+        return
+
+    if e.horizontal:
+        remaining_space = e.width - sum(e.padding[:2])
+    else:
+        remaining_space = e.height - sum(e.padding[2:])
+
+    remaining_space -= e.child_gap * (len(e.children) - 1)
     grow_children = []
     for c in e.children:
-        remaining_space += c.width if e.horizontal else c.height
+        remaining_space -= c.width if e.horizontal else c.height
         if c.sizing > 0:
             grow_children.append(c)
 
