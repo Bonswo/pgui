@@ -1,6 +1,7 @@
 import pygame as pg
 import win32gui
 import win32con
+import element as el
 from element import Element, update_elements_r, draw_r
 
 def wndProc(oldWndProc, draw_callback, hWnd, message, wParam, lParam):
@@ -29,7 +30,8 @@ root = Element(
     padding = [20, 20, 20, 20],
     children = [box1, box2],
     child_gap = 20,
-    sizing = -1
+    justify = el.start,
+    align = el.stretch
 )
 update_elements_r(root)
 

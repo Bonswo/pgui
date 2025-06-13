@@ -96,6 +96,24 @@ class Element():
     @bottom.setter
     def bottom(self, value): self.position.y = value - self.size.y
 
+    @property
+    def center(self): return self.position + 0.5 * self.size
+    @center.setter
+    def center(self, value):
+        self.position = value - 0.5 * self.size
+
+    @property
+    def centerx(self): return self.position.x + 0.5 * self.size.x
+    @centerx.setter
+    def centerx(self, value):
+        self.position.x = value - 0.5 * self.size.x
+
+    @property
+    def centery(self): return self.position.y + 0.5 * self.size.y
+    @centery.setter
+    def centery(self, value):
+        self.position.y = value - 0.5 * self.size.y
+
 def update_elements_r(e: Element):
     """Recursively update elements"""
     # Size elements
@@ -103,6 +121,8 @@ def update_elements_r(e: Element):
     grow_r(e)
     size_cross_axis_r(e)
     stretch_r(e)
+    # Position elements
+    position_r(e)
 
     # Make their surfaces
     make_surface_r(e)
@@ -219,6 +239,64 @@ def grow_r(e: Element):
 
     for c in e.children:
         grow_r(c)
+
+def position_r(e: Element):
+    """Recursively position each element's children"""
+    # Position all elements in relation to e
+    if len(e.children) == 0:
+        return
+
+    align(e)
+    justify(e)
+
+    for c in e.children:
+        position_r(c)
+
+def align(e: Element):
+    if e.align in [start, stretch]:
+        if e.horizontal:
+            ypos = e.top + e.padding[2]
+            for c in e.children:
+                c.top = ypos
+        else:
+            xpos = e.left + e.padding[0]
+            for c in e.children:
+                c.left = xpos
+    elif e.align == end:
+        if e.horizontal:
+            ypos = e.bottom - e.padding[3]
+            for c in e.children:
+                c.bottom = ypos
+        else:
+            xpos = e.right - e.padding[1]
+            for c in e.children:
+                c.right = xpos
+
+def justify(e: Element):
+    """Align the element's children"""
+
+    if e.justify == start:
+        if e.horizontal:
+            curr_x = e.left + e.padding[0]
+            for c in e.children:
+                c.left = curr_x
+                curr_x += c.width + e.child_gap
+        else:
+            curr_y = e.top + e.padding[2]
+            for c in e.children:
+                c.top = curr_y
+                curr_y += c.height + e.child_gap
+    elif e.justify == end:
+        if e.horizontal:
+            curr_x = e.right - e.padding[1]
+            for c in reversed(e.children):
+                c.right = curr_x
+                curr_x -= c.width + e.child_gap
+        else:
+            curr_y = e.bottom - e.padding[3]
+            for c in reversed(e.children):
+                c.bottom = curr_y
+                curr_y = c.height + e.child_gap
 
 def make_surface_r(e: Element):
     """Recursively make the elements' textures"""
