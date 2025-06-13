@@ -24,9 +24,9 @@ class Element():
         self.sizing_h = 0 # fixed = 0, grow > 0, fit/shrink = -1
         self.padding = [0, 0, 0, 0]
         ## Positioning
-        self.position = pg.Vector2(0, 0) # Topleft of the element
-        # self.align = start # Replaced with
-        # self.justify = start # Replaced with spacing
+        self.position = pg.Vector2(0, 0) # Topleft pos of the element
+        self.align = start
+        self.justify = start
         self.children: list[Element] = []
         self.child_gap = 0
         ## Graphic
@@ -49,7 +49,7 @@ class Element():
 
     def draw(self, surf: pg.Surface):
         if self.surface is None:
-            raise ValueError("Cannot draw None to surface")
+            raise ValueError("Element is missing texture")
 
         surf.blit(self.surface, self.position)
 
@@ -86,7 +86,7 @@ class Element():
     @bottom.setter
     def bottom(self, value): self.position.y = value - self.size.y
 
-def update_element(e: "Element"):
+def update_element(e: Element):
     # Size fixed and max-sized elements and
     size_widths(e)
     # Grow elements
@@ -106,7 +106,7 @@ def set_child_positions(e: Element):
         for child in e.children:
             child.position.update(curr_pos)
             set_child_positions(child)
-            curr_pos += (child.width + e.child_gap, 0)
+            curr_pos.x += child.width + e.child_gap
 
 def make_surfaces(e: Element):
     # Recursively re-draw all elements' surfaces
@@ -116,7 +116,7 @@ def make_surfaces(e: Element):
     for child in e.children:
         make_surfaces(child)
 
-def draw(e: Element, surf):
+def draw(e: Element, surf: pg.Surface):
     if e.surface is None or surf is None:
         raise ValueError("Cannot draw None to surface")
 
@@ -147,7 +147,7 @@ def size_widths(e: Element):
         e.width = max(e.min_width, (min(e.max_width, e.width)))
 
 def grow_child_widths(e: Element):
-    # BFS traverse elements and grow their widths
+    # DFS traverse elements and grow their children's widths
     # Assumes e is already sized.
     # Calculate the remaining space available for growing elements
     remaining_space = e.width - e.padding[0] - e.padding[1] - (len(e.children) - 1) * e.child_gap

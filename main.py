@@ -16,12 +16,10 @@ display = pg.display.set_mode((1280, 720), pg.RESIZABLE)
 box1 = Element(
     size = pg.Vector2(50, 50),
     background = (255, 0, 0),
-    sizing_w = 1,
 )
 box2 = Element(
     size = pg.Vector2(20, 50),
     background = (0, 0, 255),
-    sizing_w = 1,
 )
 root = Element(
     size = pg.Vector2(display.get_size()),
