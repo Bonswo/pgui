@@ -15,22 +15,26 @@ pg.init()
 display = pg.display.set_mode((1280, 720), pg.RESIZABLE)
 
 box1 = Element(
-    size = pg.Vector2(50, 50),
+    size = pg.Vector2(50, 100),
     background = (255, 0, 0),
-    sizing = 1,
+    # sizing = 1,
     min_width = 50
 )
 box2 = Element(
     size = pg.Vector2(20, 50),
     background = (0, 0, 255),
 )
+box3 = Element(
+    size = pg.Vector2(50, 50),
+    background = (0, 255, 0)
+)
 root = Element(
     size = pg.Vector2(display.get_size()),
     background = (255, 255, 255),
     padding = [20, 20, 20, 20],
-    children = [box1, box2],
+    children = [box1, box2, box3],
     child_gap = 20,
-    justify = el.start,
+    justify = el.space_between,
     align = el.stretch
 )
 update_elements_r(root)

@@ -253,6 +253,7 @@ def position_r(e: Element):
         position_r(c)
 
 def align(e: Element):
+    """Align the element's children"""
     if e.align in [start, stretch]:
         if e.horizontal:
             ypos = e.top + e.padding[2]
@@ -271,10 +272,17 @@ def align(e: Element):
             xpos = e.right - e.padding[1]
             for c in e.children:
                 c.right = xpos
+    elif e.align == center:
+        if e.horizontal:
+            for c in e.children:
+                c.centery = e.centery
+        else:
+            for c in e.children:
+                c.centerx = e.centerx
 
 def justify(e: Element):
-    """Align the element's children"""
-
+    """Justify the element's children"""
+    # TODO: Break this function up
     if e.justify == start:
         if e.horizontal:
             curr_x = e.left + e.padding[0]
@@ -297,6 +305,63 @@ def justify(e: Element):
             for c in reversed(e.children):
                 c.bottom = curr_y
                 curr_y = c.height + e.child_gap
+    elif e.justify == center:
+        if e.horizontal:
+            child_total_widths = e.child_gap * (len(e.children) - 1) + sum(c.width for c in e.children)
+            curr_x = e.centerx - 0.5 * child_total_widths
+            for c in e.children:
+                c.left = curr_x
+                curr_x += c.width + e.child_gap
+        else:
+            child_total_heights = e.child_gap * (len(e.children) - 1) + sum(c.height for c in e.children)
+            curr_y = e.centery - 0.5 * child_total_heights
+            for c in e.children:
+                c.top = curr_y
+                curr_y += c.height + e.child_gap
+    elif e.justify == space_around:
+        # Center position and ignore child_gap
+        if e.horizontal:
+            num_spaces = len(e.children) * 2
+            remaining_space = e.width - sum(c.width for c in e.children) - sum(e.padding[:2])
+            space_size = remaining_space / num_spaces
+            curr_x = e.left + e.padding[0]
+            for c in e.children:
+                c.left = pg.math.clamp(
+                    curr_x + space_size,
+                    e.left + e.padding[0],
+                    e.right - e.padding[1] - c.width
+                )
+                curr_x += space_size * 2 + c.width
+        else:
+            num_spaces = len(e.children) * 2
+            remaining_space = e.height - sum(c.height for c in e.children) - sum(e.padding[2:])
+            space_size = remaining_space / num_spaces
+            curr_y = e.top + e.padding[2]
+            for c in e.children:
+                c.top = pg.math.clamp(
+                    curr_y + space_size,
+                    e.top + e.padding[2],
+                    e.bottom - e.padding[3] - c.height
+                )
+                curr_y += space_size * 2 + c.height
+
+    elif e.justify == space_between:
+        if e.horizontal:
+            num_spaces = len(e.children) - 1
+            remaining_space = e.width - sum(c.width for c in e.children) - sum(e.padding[:2])
+            space_size = remaining_space / num_spaces
+            curr_x = e.left + e.padding[0]
+            for c in e.children:
+                c.left = curr_x
+                curr_x += c.width + space_size
+        else:
+            num_spaces = len(e.children) - 1
+            remaining_space = e.height - sum(c.height for c in e.children) - sum(e.padding[2:])
+            space_size = remaining_space / num_spaces
+            curr_y = e.top + e.padding[0]
+            for c in e.children:
+                c.top = curr_y
+                curr_y += c.height + space_size
 
 def make_surface_r(e: Element):
     """Recursively make the elements' textures"""
