@@ -1,7 +1,7 @@
 import pygame as pg
 import win32gui
 import win32con
-from element import Element, update_element, draw
+from element import Element, update_elements_r, draw_r
 
 def wndProc(oldWndProc, draw_callback, hWnd, message, wParam, lParam):
     if message == win32con.WM_SIZE:
@@ -28,14 +28,14 @@ root = Element(
     children = [box1, box2],
     child_gap = 20,
 )
-update_element(root)
+update_elements_r(root)
 
 def draw_and_update():
     global root, display
     root.size = pg.Vector2(display.get_size())
-    update_element(root)
+    update_elements_r(root)
     display.fill((0, 0, 0))
-    draw(root, display)
+    draw_r(root, display)
     pg.display.flip()
 
 oldWndProc = win32gui.SetWindowLong(

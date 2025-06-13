@@ -5,6 +5,11 @@ from typing import Optional
 horizontal = 0
 vertical = 1
 start = 0
+end = 1
+center = 2
+stretch = 3
+space_between = 3
+space_around = 4
 
 class Element():
     """A pygame implementation of flexbox-like elements.
@@ -16,17 +21,16 @@ class Element():
         self.parent: Element | None = None
         ## Sizing
         self.size = pg.Vector2(0, 0)
+        self.sizing = 0 # fixed = 0, grow > 0, fit/shrink = -1
         self.min_width = 0
         self.max_width = float('inf')
-        self.sizing_w = 0 # fixed = 0, grow > 0, fit/shrink = -1
         self.min_height = 0
         self.max_height = float('inf')
-        self.sizing_h = 0 # fixed = 0, grow > 0, fit/shrink = -1
         self.padding = [0, 0, 0, 0]
         ## Positioning
         self.position = pg.Vector2(0, 0) # Topleft pos of the element
-        self.align = start
-        self.justify = start
+        self.align = start # Start, end, center, stretch
+        self.justify = start # Start, end, center, space_between, space_around
         self.children: list[Element] = []
         self.child_gap = 0
         ## Graphic
@@ -47,6 +51,12 @@ class Element():
     def is_leaf(self):
         return len(self.children) == 0
 
+    def add_child(self, c: "Element", position: int = -1):
+        if not position in range(-1, len(self.children)):
+            raise ValueError(f"{position} position out of range of children")
+
+        self.children.insert(position, c)
+
     def draw(self, surf: pg.Surface):
         if self.surface is None:
             raise ValueError("Element is missing texture")
@@ -57,13 +67,13 @@ class Element():
     @property
     def width(self): return self.size.x
     @width.setter
-    def width(self, value): self.size.x = value
+    def width(self, value): self.size.x = pg.math.clamp(value, self.min_width, self.max_width)
 
     # Height getter/setter
     @property
     def height(self): return self.size.y
     @height.setter
-    def height(self, value): self.size.y = value
+    def height(self, value): self.size.y = pg.math.clamp(value, self.min_height, self.max_height)
 
     # Edge getters/setters
     @property
@@ -86,118 +96,127 @@ class Element():
     @bottom.setter
     def bottom(self, value): self.position.y = value - self.size.y
 
-def update_element(e: Element):
-    # Size fixed and max-sized elements and
-    size_widths(e)
-    # Grow elements
-    grow_child_widths(e)
-    # Set positions
-    set_child_positions(e)
-    # Create Surfaces and draw to them
-    make_surfaces(e)
+def update_elements_r(e: Element):
+    """Recursively update elements"""
+    # Size elements
+    size_main_axis_r(e)
+    grow_r(e)
+    size_cross_axis_r(e)
 
-def set_child_positions(e: Element):
-    """The recursively sets all of its childrens' positions"""
-    if e.horizontal:
-        # Line up children side-by-side
-        ## Sizes should have already been set
-        ### TODO: Handle spacing and alignment
-        curr_pos = e.position + (e.padding[0], e.padding[2])
-        for child in e.children:
-            child.position.update(curr_pos)
-            set_child_positions(child)
-            curr_pos.x += child.width + e.child_gap
+    # Make their surfaces
+    make_surface_r(e)
 
-def make_surfaces(e: Element):
-    # Recursively re-draw all elements' surfaces
-    new = pg.Surface(e.size)
-    new.fill(e.background)
-    e.surface = new
-    for child in e.children:
-        make_surfaces(child)
+def size_main_axis_r(e: Element):
+    """Depth first post order size fit elements"""
+    # Traversal
+    for c in e.children:
+        size_main_axis_r(c)
 
-def draw(e: Element, surf: pg.Surface):
-    if e.surface is None or surf is None:
-        raise ValueError("Cannot draw None to surface")
-
-    surf.blit(e.surface, e.position)
-    # Draw the children one after the other
-    for child in e.children:
-        draw(child, surf)
-
-def size_widths(e: Element):
-    # DFPO traversal to size fixed elements
-    total_children_widths = 0
-    for child in e.children:
-        size_widths(child)
-        total_children_widths += child.width + e.child_gap
-
-    if e.sizing_w > 0:
-        # e will be sized in the "grow_elements" pass
-        ## BUT still has to be of min_width, so we let it take that up first
-        e.width = e.min_width
-    elif e.sizing_w < 0:
-        # Element has to be fitted to children
-        if total_children_widths < e.min_width:
-            e.width = total_children_widths # TODO: Add child gaps n shit
-        else:
-            e.width = e.min_width
-    else:
-        # Just clamp its width
-        e.width = max(e.min_width, (min(e.max_width, e.width)))
-
-def grow_child_widths(e: Element):
-    # DFS traverse elements and grow their children's widths
-    # Assumes e is already sized.
-    # Calculate the remaining space available for growing elements
-    remaining_space = e.width - e.padding[0] - e.padding[1] - (len(e.children) - 1) * e.child_gap
-    for child in e.children:
-        remaining_space -= child.width
-
-    # Find all children that can grow (sizing_w > 0)
-    growing_children = [child for child in e.children if child.sizing_w > 0]
-    if not growing_children or remaining_space <= 0:
-        # No children to grow or no space available
-        for child in e.children:
-            grow_child_widths(child)
-
+    # Skip fixed elements
+    if e.sizing == 0:
         return
 
-    # Iteratively distribute space, handling constraints
-    space_to_distribute = remaining_space
-    available_children = growing_children.copy()
-    while space_to_distribute > 0 and available_children:
-        # Calculate total growth factor for remaining children
-        total_growth_factor = sum(child.sizing_w for child in available_children)
-        # Track children that hit constraints this iteration
-        constrained_children = []
-        space_used_this_iteration = 0
-        for child in available_children:
-            # Calculate proportional width for this child
-            proportion = child.sizing_w / total_growth_factor
-            additional_width = space_to_distribute * proportion
-            target_width = child.width + additional_width
-            # Apply min/max constraints
-            constrained_width = max(child.min_width, min(child.max_width, target_width))
-            # Calculate actual space used by this child
-            actual_additional_width = constrained_width - child.width
-            space_used_this_iteration += actual_additional_width
-            # Update child width
-            child.width = constrained_width
-            # If child hit a constraint, remove it from future iterations
-            if constrained_width == child.max_width or constrained_width == child.min_width:
-                constrained_children.append(child)
+    # Skip grow elements
+    if e.sizing > 0:
+        if e.horizontal:
+            e.width = 0 # Setter clamps value for us
+        else:
+            e.height = 0
+        return
 
-        # Remove constrained children from available list
-        for child in constrained_children:
-            available_children.remove(child)
+    # Shrink element
+    ## Get total size of children along main-axis
+    if e.horizontal:
+        content_size = 0 # TODO: Padding and child gap
+        for c in e.children:
+            content_size += c.width
 
-        # Update remaining space
-        space_to_distribute -= space_used_this_iteration
-        # Break if no progress made (If all children hit their max_widths)
-        if space_used_this_iteration == 0:
+        e.width = content_size
+    else:
+        content_size = 0 # TODO: Padding and child gap
+        for c in e.children:
+            content_size += c.height
+
+        e.height = content_size
+
+def size_cross_axis_r(e: Element):
+    """DFPO fit elements cross axis wise"""
+    for c in e.children:
+        size_cross_axis_r(c)
+
+    if e.sizing >= 0:
+        return
+
+    # Fit on cross axis
+    if e.horizontal:
+        e.height = max(c.height for c in e.children) # TODO: Padding
+    else:
+        e.width = max(c.width for c in e.children)
+
+def stretch_r(e: Element):
+    """Recursivly stretch children"""
+    if e.align == 3:
+        for c in e.children:
+            c.height = e.height # TODO: Padding
+
+    for c in e.children:
+        stretch_r(c)
+
+def grow_r(e: Element):
+    """Recursively grow children along the main axis of `e`"""
+    # Calculate remaining space and find children to grow
+    remaining_space = 0 # TODO: Padding and child gap
+    grow_children = []
+    for c in e.children:
+        remaining_space += c.width if e.horizontal else c.height
+        if c.sizing > 0:
+            grow_children.append(c)
+
+    while remaining_space > 0 and grow_children:
+        num_partitions = sum(c.sizing for c in grow_children)
+        # Keep track of the children who hit their max size during each iter
+        ms_children = []
+        curr_iter_used_space = 0
+        for c in grow_children:
+            unit_size = (remaining_space * (c.sizing / num_partitions))
+            if e.horizontal:
+                target_size = c.width + unit_size
+                max_size = c.max_width
+                c.width = target_size
+            else:
+                target_size = c.height + unit_size
+                max_size = c.max_height
+                c.height = target_size
+
+            if target_size >= max_size:
+                ms_children.append(c)
+                curr_iter_used_space += max_size
+            else:
+                curr_iter_used_space += target_size
+
+        # Remove children who hit their max size
+        for c in ms_children:
+            grow_children.remove(c)
+
+        # If all children hit max sizes
+        if curr_iter_used_space == 0:
             break
 
-    # Recursively process children
+        remaining_space -= curr_iter_used_space
+
+    for c in e.children:
+        grow_r(c)
+
+def make_surface_r(e: Element):
+    """Recursively make the elements' textures"""
+    e.surface = pg.Surface(e.size)
+    e.surface.fill(e.background)
+
     for child in e.children:
-        grow_child_widths(child)
+        make_surface_r(child)
+
+def draw_r(e: Element, surf: pg.Surface):
+    """Recursively draw elements"""
+    e.draw(surf)
+    for c in e.children:
+        draw_r(c, surf)
