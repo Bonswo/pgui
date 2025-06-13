@@ -201,9 +201,10 @@ def grow_r(e: Element):
     remaining_space -= e.child_gap * (len(e.children) - 1)
     grow_children = []
     for c in e.children:
-        remaining_space -= c.width if e.horizontal else c.height
         if c.sizing > 0:
             grow_children.append(c)
+        else:
+            remaining_space -= c.width if e.horizontal else c.height
 
     while remaining_space > 0 and grow_children:
         num_partitions = sum(c.sizing for c in grow_children)
@@ -211,19 +212,22 @@ def grow_r(e: Element):
         ms_children = []
         curr_iter_used_space = 0
         for c in grow_children:
-            unit_size = (remaining_space * (c.sizing / num_partitions))
+            target_size = (remaining_space * (c.sizing / num_partitions))
             if e.horizontal:
-                target_size = c.width + unit_size
                 max_size = c.max_width
+                min_size = c.min_width
                 c.width = target_size
             else:
-                target_size = c.height + unit_size
                 max_size = c.max_height
+                min_size = c.min_height
                 c.height = target_size
 
             if target_size >= max_size:
                 ms_children.append(c)
                 curr_iter_used_space += max_size
+            elif target_size <= min_size:
+                ms_children.append(c)
+                curr_iter_used_space += min_size
             else:
                 curr_iter_used_space += target_size
 
