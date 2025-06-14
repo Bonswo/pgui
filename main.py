@@ -2,7 +2,8 @@ import pygame as pg
 import win32gui
 import win32con
 import element as el
-from element import Element, update_elements_r, draw_r
+from element import Element
+from layout import update_elements_r, draw_r
 
 def wndProc(oldWndProc, draw_callback, hWnd, message, wParam, lParam):
     if message == win32con.WM_SIZE:
@@ -15,31 +16,25 @@ pg.init()
 display = pg.display.set_mode((1280, 720), pg.RESIZABLE)
 
 box1 = Element(
-    size = pg.Vector2(50, 100),
-    background = (255, 0, 0),
-    sizing = 1,
-    min_width = 50
+    min_height = 50,
+    background = (255, 0, 0)
 )
 box2 = Element(
-    size = pg.Vector2(20, 50),
-    sizing = 1,
     background = (0, 0, 255),
+    sizing = 1
 )
 box3 = Element(
+    min_height = 200,
     size = pg.Vector2(50, 50),
-    sizing = 3,
     background = (0, 255, 0)
 )
 root = Element(
+    horizontal = False,
     size = pg.Vector2(display.get_size()),
     background = (255, 255, 255),
-    padding = [20, 20, 20, 20],
     children = [box1, box2, box3],
-    child_gap = 20,
-    justify = el.space_between,
     align = el.stretch
 )
-update_elements_r(root)
 
 def draw_and_update():
     global root, display
