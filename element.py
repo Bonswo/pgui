@@ -1,23 +1,29 @@
 import pygame as pg
-from typing import Optional
+from typing import Deque
 
 # Config consts
+## Axis
 horizontal = 0
 vertical = 1
+## Positioning and Spacing
 start = 0
 end = 1
 center = 2
 stretch = 3
 space_between = 3
 space_around = 4
+## Sizing
+fit = shrink = -1
+fixed = 0
 
 class Element():
     def __init__(self, **args):
+        self.id: int = 0
         # defaults
         self.horizontal: bool = True # Stack items horizontally
         self.parent: Element | None = None
         ## Sizing
-        self.size: pg.Vector2 = pg.Vector2(0, 0)
+        self._size: pg.Vector2 = pg.Vector2(0, 0)
         self.sizing: int = 0 # fixed = 0, grow > 0, fit/shrink = -1
         self.min_width: float = 0
         self.max_width: float = float('inf')
@@ -33,11 +39,19 @@ class Element():
         ## Graphic
         self.visible = True
         self.background = (0, 0, 0, 0)
+        ## Other
+        self.hovered = False
 
         # Override defaults
         self.__dict__ |= args
 
-        self.width, self.height = self.size # Make sure size respects min/max constraints
+        self.width, self.height = self._size # Make sure size respects min/max constraints
+
+        if w := args.get('width'):
+            self.width = w
+
+        if h := args.get('height'):
+            self.height = h
 
         # Set childrens' parent
         for child in self.children:
@@ -61,6 +75,27 @@ class Element():
             raise ValueError("Element is missing texture")
 
         surf.blit(self.surface, self.position)
+
+    @property
+    def size(self): return self._size
+    @size.setter
+    def size(self, value):
+        w, h = value
+        self.width = w
+        self.height = h
+
+    def inflate(self, left=0, right=0, top=0, bottom=0):
+        # TODO: Account for hitting size constraints
+        if left > 0:
+            self.width += left
+            self.left -= left
+        if right > 0:
+            self.width += right
+        if top > 0:
+            self.height += top
+            self.top -= top
+        if bottom > 0:
+            self.height += bottom
 
     # Width getter/setter
     @property
@@ -108,14 +143,44 @@ class Element():
         self.position.x = value - 0.5 * self.size.x
 
     @property
-    def centery(self): return self.position.y + 0.5 * self.size.y
+    def centery(self): return self.position.y + 0.5 * self.height
     @centery.setter
     def centery(self, value):
-        self.position.y = value - 0.5 * self.size.y
+        self.top = value - 0.5 * self.height
+
+    def on_mouse_enter(self):
+        pass
+
+    def on_mouse_exit(self):
+        pass
+
+    def bfs(self):
+        result = [self]
+        q = Deque()
+        for c in self.children:
+            q.append(c)
+
+        while len(q) > 0:
+            curr = q.popleft()
+            result.append(curr)
+            for c in curr.children:
+                q.append(c)
+
+        return result
+
+    def get_hovered(self, pos):
+        elements = reversed(self.bfs())
+        collided = []
+        for e in elements:
+            rect = pg.FRect(e.position, e.size)
+            if rect.collidepoint(pos):
+                collided.append(e)
+
+        return collided
 
 def make_surface_r(e: Element):
     """Recursively make the elements' textures"""
-    e.surface = pg.Surface(e.size)
+    e.surface = pg.Surface(e.size, pg.SRCALPHA)
     e.surface.fill(e.background)
 
     for child in e.children:

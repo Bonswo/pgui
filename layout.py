@@ -20,11 +20,11 @@ def size_main_axis_r(e: Element):
         size_main_axis_r(c)
 
     # Skip fixed elements
-    if e.sizing == 0:
+    if e.sizing == fixed:
         return
 
     # Skip grow elements
-    elif e.sizing > 0:
+    elif e.sizing > fixed:
         if e.horizontal:
             e.width = 0 # Setter clamps value for us
         else:
@@ -33,7 +33,7 @@ def size_main_axis_r(e: Element):
 
     # Shrink element
     ## Get total size of children along main-axis
-    else:
+    elif e.sizing == shrink:
         if e.horizontal:
             content_size = sum(e.padding[:2]) + e.child_gap * (len(e.children) - 1)
             for c in e.children:
