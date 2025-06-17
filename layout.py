@@ -1,4 +1,4 @@
-from element import *
+from .element import *
 
 def update_elements_r(e: Element):
     """Recursively update elements"""
