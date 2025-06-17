@@ -49,6 +49,9 @@ class Element():
         self.width, self.height = self._size # Make sure size respects min/max constraints
 
         # Custom properties
+        if size := args.get('size'):
+            self.size = size
+
         if w := args.get('width'):
             self.width = w
 
@@ -198,6 +201,7 @@ class Element():
         return result
 
     def get_hovered(self, pos):
+        """Returns the hovered elements, deepest first"""
         elements = reversed(self.bfs())
         collided = []
         for e in elements:
