@@ -112,7 +112,8 @@ def grow_heights_r(e: Element):
     # If horizontal layout, the heights are just equal to the parent heights minus padding
     if e.horizontal:
         for c in e.children:
-            c.height = e.height - sum(e.padding[2:])
+            if c.sizing_h > 0:
+                c.height = e.height - sum(e.padding[2:])
     else:
         to_grow: list[Element] = []
         num_partitions: int = 0
