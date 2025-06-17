@@ -3,133 +3,160 @@ from element import *
 def update_elements_r(e: Element):
     """Recursively update elements"""
     # Size elements
-    size_main_axis_r(e)
-    grow_r(e)
-    size_cross_axis_r(e)
-    stretch_r(e)
+    set_widths_r(e)
+    grow_widths_r(e)
+    set_heights_r(e)
+    grow_heights_r(e)
+
     # Position elements
     position_r(e)
 
     # Make their surfaces
     make_surface_r(e)
 
-def size_main_axis_r(e: Element):
-    """Depth first post order size fit elements"""
-    # Traversal
+def set_widths_r(e: Element):
+    """Recursively set fixed and shrink widths"""
+    # Have to fix the widths of children first
     for c in e.children:
-        size_main_axis_r(c)
+        set_widths_r(c)
 
-    # Skip fixed elements
-    if e.sizing == fixed:
+    if e.sizing_w > 0: # If element is set to grow
+        e.width = 0
         return
-
-    # Skip grow elements
-    elif e.sizing > fixed:
+    elif e.sizing_w == shrink:
         if e.horizontal:
-            e.width = 0 # Setter clamps value for us
+            # Width is made of padding, child gap, and sum of child widths
+            e.width = sum(e.padding[:2]) + e.child_gap * (len(e.children) - 1) + sum([c.width for c in e.children])
         else:
-            e.height = 0
+            e.width = sum(e.padding[:2]) + max([c.width for c in e.children])
+
+def grow_widths_r(e: Element):
+    """Recursively grow child widths."""
+    # TODO: Text and wrapping text
+    if not e.children: # No children to grow
         return
 
-    # Shrink element
-    ## Get total size of children along main-axis
+    # If vertical layout, the widths are just equal to the parent widths
+    if not e.horizontal:
+        for c in e.children:
+            if c.sizing_w > 0:
+                c.width = e.width - sum(e.padding[:2])
+    else:
+        to_grow: list[Element] = []
+        num_partitions: int = 0
+        remaining_space = e.width - sum(e.padding[:2]) - sum([c.width for c in e.children]) - (len(e.children) - 1) * e.child_gap
+        for c in e.children:
+            if c.sizing_w > 0:
+                to_grow.append(c)
+                num_partitions += c.sizing_w
+                # Add back grow children's width
+                # Incase there was a constraint hit when setting its width to 0
+                remaining_space += c.width
+
+        # Check if any target widths are smaller than min widths and set those first
+        dirty_children = []
+        for c in to_grow:
+            target_width = c.sizing_w * remaining_space / num_partitions
+            if target_width <= c.min_width:
+                c.width = c.min_width
+                remaining_space -= c.width
+                num_partitions -= c.sizing_w
+                dirty_children.append(c)
+
+        for c in dirty_children:
+            to_grow.remove(c)
+
+        # We might have to redistribute space multiple times if children hit constraints
+        while remaining_space > 0 and to_grow: # While there is space to redistribute, and children to grow
+            curr_space_used = 0
+            dirty_children = []
+            for c in to_grow:
+                target_width = c.sizing_w * remaining_space / num_partitions
+                c.width += target_width
+                if c.width < target_width: # If we hit max width
+                    curr_space_used += c.width
+                    dirty_children.append(c) # We can't grow this child anymore
+                    num_partitions -= c.sizing_w
+
+            for c in dirty_children:
+                to_grow.remove(c)
+            # If there was no progress made this iter
+            if curr_space_used == 0:
+                break
+
+            remaining_space -= curr_space_used
+
+    for c in e.children:
+        grow_widths_r(c)
+
+def set_heights_r(e: Element):
+    """Recursively set fixed and shrink heights"""
+    for c in e.children:
+        set_heights_r(c)
+
+    if e.sizing_h > 0:
+        e.height = 0
+        return
     elif e.sizing == shrink:
         if e.horizontal:
-            content_size = sum(e.padding[:2]) + e.child_gap * (len(e.children) - 1)
-            for c in e.children:
-                content_size += c.width
-
-            e.width = content_size
+            e.height = sum(e.padding[2:]) + max([c.height for c in e.children])
         else:
-            content_size = sum(e.padding[2:]) + e.child_gap * (len(e.children) - 1)
-            for c in e.children:
-                content_size += c.height
+            e.height = sum(e.padding[2:]) + sum([c.height for c in e.children]) + (len(e.children) - 1) * e.child_gap
 
-            e.height = content_size
-
-def size_cross_axis_r(e: Element):
-    """DFPO fit elements cross axis wise"""
-    for c in e.children:
-        size_cross_axis_r(c)
-
-    if e.sizing >= 0:
+def grow_heights_r(e: Element):
+    """Recursively grow child heights"""
+    # TODO: Text and wrapping text
+    if not e.children: # No children to grow
         return
 
-    # Fit on cross axis
+    # If horizontal layout, the heights are just equal to the parent heights minus padding
     if e.horizontal:
-        e.height = max(c.height for c in e.children) + sum(e.padding[2:])
-    else:
-        e.width = max(c.width for c in e.children) + sum(e.padding[:2])
-
-def stretch_r(e: Element):
-    """Recursivly stretch children"""
-    if e.align == 3 and not e.sizing == -1: # shrink overrides align
         for c in e.children:
-            if e.horizontal:
-                c.height = e.height - sum(e.padding[2:])
-            else:
-                c.width = e.width - sum(e.padding[:2])
-
-    for c in e.children:
-        stretch_r(c)
-
-def grow_r(e: Element):
-    """Recursively grow children along the main axis of `e`"""
-    # Calculate remaining space and find children to grow
-    if len(e.children) == 0:
-        return
-
-    if e.horizontal:
-        remaining_space = e.width - sum(e.padding[:2])
+            c.height = e.height - sum(e.padding[2:])
     else:
-        remaining_space = e.height - sum(e.padding[2:])
+        to_grow: list[Element] = []
+        num_partitions: int = 0
+        remaining_space = e.height - sum(e.padding[2:]) - sum([c.height for c in e.children]) - (len(e.children) - 1) * e.child_gap
+        for c in e.children:
+            if c.sizing_h > 0:
+                to_grow.append(c)
+                num_partitions += c.sizing_h
+                remaining_space += c.height
 
-    remaining_space -= e.child_gap * (len(e.children) - 1)
-    grow_children = []
-    for c in e.children:
-        if c.sizing > 0:
-            grow_children.append(c)
-        else:
-            remaining_space -= c.width if e.horizontal else c.height
+        # Allocate minimum heights if min height smaller than target sizes
+        dirty_children = []
+        for c in to_grow:
+            target_height = c.sizing_h * remaining_space / num_partitions
+            if target_height <= c.min_height:
+                c.height = c.min_height
+                remaining_space -= c.height
+                num_partitions -= c.sizing_h
+                dirty_children.append(c)
 
-    # Prevent the loop from going again with tiny tiny amounts of space left due to floating point error
-    while remaining_space > 1 and grow_children:
-        num_partitions = sum(c.sizing for c in grow_children)
-        # Keep track of the children who hit their max size during each iter
-        ms_children = []
-        curr_iter_used_space = 0
-        for c in grow_children:
-            target_size = (remaining_space * (c.sizing / num_partitions))
-            if e.horizontal:
-                max_size = c.max_width
-                min_size = c.min_width
-                c.width = target_size
-            else:
-                max_size = c.max_height
-                min_size = c.min_height
-                c.height = target_size
+        for c in dirty_children:
+            to_grow.remove(c)
 
-            if target_size >= max_size:
-                ms_children.append(c)
-                curr_iter_used_space += max_size
-            elif target_size <= min_size:
-                ms_children.append(c)
-                curr_iter_used_space += min_size
-            else:
-                curr_iter_used_space += target_size
+        while remaining_space > 0 and to_grow: # While there is space to redistribute, and children to grow
+            curr_space_used = 0
+            dirty_children = []
+            for c in to_grow:
+                target_height = c.sizing_h * remaining_space / num_partitions
+                c.height += target_height
+                if c.height < target_height: # If we hit max height
+                    curr_space_used += c.height
+                    dirty_children.append(c) # We can't grow this child anymore
+                    num_partitions -= c.sizing_h
 
-        # Remove children who hit their max size
-        for c in ms_children:
-            grow_children.remove(c)
+            for c in dirty_children:
+                to_grow.remove(c)
+            # If there was no progress made this iter
+            if curr_space_used == 0:
+                break
 
-        # If all children hit max sizes
-        if curr_iter_used_space == 0:
-            break
-
-        remaining_space -= curr_iter_used_space
+            remaining_space -= curr_space_used
 
     for c in e.children:
-        grow_r(c)
+        grow_heights_r(c)
 
 def position_r(e: Element):
     """Recursively position each element's children"""
@@ -145,7 +172,7 @@ def position_r(e: Element):
 
 def align(e: Element):
     """Align the element's children"""
-    if e.align in [start, stretch]:
+    if e.align == start:
         if e.horizontal:
             ypos = e.top + e.padding[2]
             for c in e.children:

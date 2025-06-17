@@ -9,7 +9,6 @@ vertical = 1
 start = 0
 end = 1
 center = 2
-stretch = 3
 space_between = 3
 space_around = 4
 ## Sizing
@@ -24,7 +23,7 @@ class Element():
         self.parent: Element | None = None
         ## Sizing
         self._size: pg.Vector2 = pg.Vector2(0, 0)
-        self.sizing: int = 0 # fixed = 0, grow > 0, fit/shrink = -1
+        self._sizing: pg.Vector2 = pg.Vector2(0, 0) # fixed = 0, grow > 0, fit/shrink = -1
         self.min_width: float = 0
         self.max_width: float = float('inf')
         self.min_height: float = 0
@@ -32,7 +31,7 @@ class Element():
         self.padding: list[int] = [0, 0, 0, 0]
         ## Positioning
         self.position: pg.Vector2 = pg.Vector2(0, 0) # Topleft pos of the element
-        self.align: int = start # Start, end, center, stretch
+        self.align: int = start # Start, end, center
         self.justify: int = start # Start, end, center, space_between, space_around
         self.children: list[Element] = []
         self.child_gap: int = 0
@@ -43,15 +42,27 @@ class Element():
         self.hovered = False
 
         # Override defaults
-        self.__dict__ |= args
+        for arg in args:
+            if arg in self.__dict__:
+                self.__dict__[arg] = args[arg]
 
         self.width, self.height = self._size # Make sure size respects min/max constraints
 
+        # Custom properties
         if w := args.get('width'):
             self.width = w
 
         if h := args.get('height'):
             self.height = h
+
+        if sizing := args.get('sizing'):
+            self.sizing = sizing
+
+        if size_w := args.get('sizing_w'):
+            self.sizing_w = size_w
+
+        if size_h := args.get('sizing_h'):
+            self.sizing_h = size_h
 
         # Set childrens' parent
         for child in self.children:
@@ -75,6 +86,24 @@ class Element():
             raise ValueError("Element is missing texture")
 
         surf.blit(self.surface, self.position)
+
+    @property
+    def sizing(self): return self._sizing # Returns the object so other elements can reference its size if needed
+    @sizing.setter
+    def sizing(self, value):
+        self._sizing.update(value)
+
+    @property
+    def sizing_w(self): return int(self._sizing.x)
+    @sizing_w.setter
+    def sizing_w(self, value):
+        self._sizing.x = value
+
+    @property
+    def sizing_h(self): return int(self._sizing.y)
+    @sizing_h.setter
+    def sizing_h(self, value):
+        self._sizing.y = value
 
     @property
     def size(self): return self._size

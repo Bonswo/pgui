@@ -56,23 +56,24 @@ class GrabBar(Element):
 grab_bar = GrabBar(
     height = 10,
     width = 10,
-    background = (0, 0, 0, 0)
+    sizing_w = 1
 )
 box1 = Element(
     min_height = 50,
     width = 100,
-    background = (255, 0, 0)
+    background = (255, 0, 0),
+    sizing_w = 1
 )
 box2 = Element(
     background = (0, 0, 255),
-    sizing = 1
+    sizing = (1, 1)
 )
 box3 = Element(
     horizontal = False,
     min_height = 200,
     size = pg.Vector2(50, 50),
     background = (0, 255, 0),
-    align = el.stretch,
+    sizing_w = 1,
     children = [grab_bar]
 )
 root = Element(
@@ -80,7 +81,6 @@ root = Element(
     size = pg.Vector2(display.get_size()),
     background = (255, 255, 255),
     children = [box1, box2, box3],
-    align = el.stretch
 )
 
 def draw_and_update():
