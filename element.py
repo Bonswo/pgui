@@ -99,15 +99,15 @@ class Element():
 
     # Width getter/setter
     @property
-    def width(self): return self.size.x
+    def width(self): return self._size.x
     @width.setter
-    def width(self, value): self.size.x = pg.math.clamp(value, self.min_width, self.max_width)
+    def width(self, value): self._size.x = pg.math.clamp(value, self.min_width, self.max_width)
 
     # Height getter/setter
     @property
-    def height(self): return self.size.y
+    def height(self): return self._size.y
     @height.setter
-    def height(self, value): self.size.y = pg.math.clamp(value, self.min_height, self.max_height)
+    def height(self, value): self._size.y = pg.math.clamp(value, self.min_height, self.max_height)
 
     # Edge getters/setters
     @property
@@ -121,26 +121,26 @@ class Element():
     def top(self, value): self.position.y = value
 
     @property
-    def right(self): return self.position.x + self.size.x
+    def right(self): return self.position.x + self._size.x
     @right.setter
-    def right(self, value): self.position.x = value - self.size.x
+    def right(self, value): self.position.x = value - self._size.x
 
     @property
-    def bottom(self): return self.position.y + self.size.y
+    def bottom(self): return self.position.y + self._size.y
     @bottom.setter
-    def bottom(self, value): self.position.y = value - self.size.y
+    def bottom(self, value): self.position.y = value - self._size.y
 
     @property
-    def center(self): return self.position + 0.5 * self.size
+    def center(self): return self.position + 0.5 * self._size
     @center.setter
     def center(self, value):
         self.position = value - 0.5 * self.size
 
     @property
-    def centerx(self): return self.position.x + 0.5 * self.size.x
+    def centerx(self): return self.position.x + 0.5 * self._size.x
     @centerx.setter
     def centerx(self, value):
-        self.position.x = value - 0.5 * self.size.x
+        self.position.x = value - 0.5 * self._size.x
 
     @property
     def centery(self): return self.position.y + 0.5 * self.height
