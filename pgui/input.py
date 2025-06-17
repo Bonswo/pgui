@@ -20,17 +20,40 @@ class Input():
             actions.m2u: [],
             actions.m3d: [],
             actions.m3u: [],
-            actions.mouse_move: [],
+            actions.mouse_move: []
         }
+        self.was_hovered = []
 
-    def update(self):
+    @property
+    def hovered(self): return self.was_hovered
+
+    def update(self, root=None):
+        self.mpos.update(pg.mouse.get_pos())
+
+        if root:
+            hovered = root.get_hovered(self.mpos)
+            was_hovered = set(self.was_hovered)
+            # Newly hovered items
+            for e in set(hovered) - was_hovered:
+                e.hovered = True
+                e.on_mouse_enter()
+            # Newly unhovered items
+            for e in was_hovered - set(hovered):
+                e.hovered = False
+                e.on_mouse_exit()
+
+            self.was_hovered = hovered
+
         for e in pg.event.get(pump=False):
             action = None
+
             if e.type == pg.MOUSEBUTTONDOWN:
                 if e.button == 1:
                     action = actions.m1d
                 elif e.button == 3:
                     action = actions.m2d
+                elif e.button == 2:
+                    action = actions.m3d
 
             elif e.type == pg.MOUSEMOTION:
                 action = actions.mouse_move
@@ -38,12 +61,15 @@ class Input():
             elif e.type == pg.MOUSEBUTTONUP:
                 if e.button == 1:
                     action = actions.m1u
+                elif e.button == 3:
+                    action = actions.m2u
+                elif e.button == 2:
+                    action = actions.m3u
 
             if action:
                 for cb in self.subs[action]:
                     cb(**e.dict)
-
-        self.mpos.update(pg.mouse.get_pos())
+                    break
 
     def sub(self, action, callback):
         if action not in self.subs:
