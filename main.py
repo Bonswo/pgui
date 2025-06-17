@@ -30,9 +30,6 @@ class GrabBar(Element):
 
     def on_mouse_move(self, **args):
         # Change size of parent element in direction of parent element
-        ## TODO: Why does box2 not disappear >:(
-        ## TODO: Why
-
         if not self.parent:
             return
 
