@@ -1,10 +1,7 @@
 import pygame as pg
 import win32gui
 import win32con
-import element as el
-from input import input, actions
-from element import Element
-from layout import update_elements_r, draw_r
+from pgui import input, actions, Element, update_elements_r, draw_r
 
 def wndProc(oldWndProc, draw_callback, hWnd, message, wParam, lParam):
     if message == win32con.WM_SIZE:

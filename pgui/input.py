@@ -3,8 +3,11 @@ from enum import IntEnum, auto
 
 class actions(IntEnum):
     m1d = auto()
-    m2d = auto()
     m1u = auto()
+    m2d = auto()
+    m2u = auto()
+    m3d = auto()
+    m3u = auto()
     mouse_move = auto()
 
 class Input():
@@ -13,8 +16,11 @@ class Input():
         self.subs = {
             actions.m1d: [],
             actions.m1u: [],
+            actions.m2d: [],
+            actions.m2u: [],
+            actions.m3d: [],
+            actions.m3u: [],
             actions.mouse_move: [],
-            actions.m2d: []
         }
 
     def update(self):
