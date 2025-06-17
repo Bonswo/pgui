@@ -69,7 +69,6 @@ class Input():
             if action:
                 for cb in self.subs[action]:
                     cb(**e.dict)
-                    break
 
     def sub(self, action, callback):
         if action not in self.subs:

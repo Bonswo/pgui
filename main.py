@@ -1,7 +1,8 @@
 import pygame as pg
 import win32gui
 import win32con
-from pgui import input, actions, Element, update_elements_r, draw_r
+import pgui
+from pgui import input, actions, Element, update_elements_r, draw_r, Text
 
 def wndProc(oldWndProc, draw_callback, hWnd, message, wParam, lParam):
     if message == win32con.WM_SIZE:
@@ -46,6 +47,11 @@ class GrabBar(Element):
     def on_mouse_exit(self):
         pg.mouse.set_cursor(pg.cursors.Cursor(pg.SYSTEM_CURSOR_ARROW))
 
+title = Text(
+    text = "HI MOM",
+    font = pg.font.SysFont('Arial', 30),
+    background = (255, 0, 0)
+)
 
 grab_bar = GrabBar(
     height = 10,
@@ -56,7 +62,10 @@ box1 = Element(
     min_height = 50,
     width = 100,
     background = (255, 0, 0),
-    sizing_w = 1
+    sizing_w = 1,
+    children = [title],
+    align = pgui.element.center,
+    justify = pgui.element.center
 )
 box2 = Element(
     background = (0, 0, 255),
@@ -92,6 +101,8 @@ oldWndProc = win32gui.SetWindowLong(
 )
 
 prev_hovered = []
+
+update_elements_r(root)
 
 while True:
     dt = clock.tick(120)
