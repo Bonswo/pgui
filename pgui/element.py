@@ -40,6 +40,7 @@ class Element():
         self.background = (0, 0, 0, 0)
         ## Other
         self.hovered = False
+        self.flatten = False
 
         # Override defaults
         for arg in args:
@@ -188,6 +189,9 @@ class Element():
 
     def bfs(self):
         result = [self]
+        if self.flatten:
+            return result
+
         q = Deque()
         for c in self.children:
             q.append(c)

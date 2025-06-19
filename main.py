@@ -2,7 +2,6 @@ import pygame as pg
 import win32gui
 import win32con
 import pgui
-from pgui import input, actions, Element, update_elements_r, draw_r, Text
 
 def wndProc(oldWndProc, draw_callback, hWnd, message, wParam, lParam):
     if message == win32con.WM_SIZE:
@@ -15,16 +14,17 @@ pg.init()
 display = pg.display.set_mode((1280, 720), pg.RESIZABLE)
 clock = pg.Clock()
 
-class GrabBar(Element):
+class GrabBar(pgui.Element):
+    """Example implementation of a grab-bar in-app"""
     def __init__(self, **args):
         super().__init__(**args)
-        input.sub(actions.m1d, self.on_m1d)
+        pgui.input.sub(pgui.actions.m1d, self.on_m1d)
 
     def on_m1d(self, **args):
         rect = pg.FRect(self.position, self.size)
         if rect.collidepoint(args['pos']):
-            input.sub(actions.mouse_move, self.on_mouse_move)
-            input.sub(actions.m1u, self.on_m1u)
+            pgui.input.sub(pgui.actions.mouse_move, self.on_mouse_move)
+            pgui.input.sub(pgui.actions.m1u, self.on_m1u)
 
     def on_mouse_move(self, **args):
         # Change size of parent element in direction of parent element
@@ -38,8 +38,8 @@ class GrabBar(Element):
         self.parent.height += size_change
 
     def on_m1u(self, **args):
-        input.unsub(actions.mouse_move, self.on_mouse_move)
-        input.unsub(actions.m1u, self.on_m1u)
+        pgui.input.unsub(pgui.actions.mouse_move, self.on_mouse_move)
+        pgui.input.unsub(pgui.actions.m1u, self.on_m1u)
 
     def on_mouse_enter(self):
         pg.mouse.set_cursor(pg.cursors.Cursor(pg.SYSTEM_CURSOR_SIZENS))
@@ -47,7 +47,7 @@ class GrabBar(Element):
     def on_mouse_exit(self):
         pg.mouse.set_cursor(pg.cursors.Cursor(pg.SYSTEM_CURSOR_ARROW))
 
-title = Text(
+title = pgui.Text(
     text = "HI MOM",
     font = pg.font.SysFont('Arial', 30),
     background = (255, 0, 0)
@@ -58,20 +58,28 @@ grab_bar = GrabBar(
     width = 10,
     sizing_w = 1
 )
-box1 = Element(
+box1 = pgui.Element(
     min_height = 50,
     width = 100,
     background = (255, 0, 0),
     sizing_w = 1,
-    children = [title],
+    children = [
+        title,
+        pgui.SVGElement(
+            "icon.svg",
+            size = (30, 30),
+            padding = [5, 5, 5, 5],
+            background = (255, 0, 0)
+        )
+    ],
     align = pgui.element.center,
     justify = pgui.element.center
 )
-box2 = Element(
+box2 = pgui.Element(
     background = (0, 0, 255),
     sizing = (1, 1)
 )
-box3 = Element(
+box3 = pgui.Element(
     horizontal = False,
     min_height = 200,
     size = pg.Vector2(50, 50),
@@ -79,7 +87,7 @@ box3 = Element(
     sizing_w = 1,
     children = [grab_bar]
 )
-root = Element(
+root = pgui.Element(
     horizontal = False,
     size = pg.Vector2(display.get_size()),
     background = (255, 255, 255),
@@ -89,9 +97,9 @@ root = Element(
 def draw_and_update():
     global root, display
     root.size = pg.Vector2(display.get_size())
-    update_elements_r(root)
+    pgui.update_elements_r(root)
     display.fill((0, 0, 0))
-    draw_r(root, display)
+    pgui.draw_r(root, display)
     pg.display.flip()
 
 oldWndProc = win32gui.SetWindowLong(
@@ -102,7 +110,7 @@ oldWndProc = win32gui.SetWindowLong(
 
 prev_hovered = []
 
-update_elements_r(root)
+pgui.update_elements_r(root)
 
 while True:
     dt = clock.tick(120)
@@ -114,9 +122,9 @@ while True:
         else:
             pg.event.post(e)
 
-    input.update()
+    pgui.input.update()
 
-    hovered = root.get_hovered(input.mpos)
+    hovered = root.get_hovered(pgui.input.mpos)
     for e in set(hovered) - set(prev_hovered):
         e.on_mouse_enter()
 
