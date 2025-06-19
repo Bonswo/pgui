@@ -41,6 +41,7 @@ class Element():
         ## Other
         self.hovered = False
         self.flatten = False
+        self.clickthrough = False
 
         # Override defaults
         for arg in args:
@@ -198,7 +199,8 @@ class Element():
 
         while len(q) > 0:
             curr = q.popleft()
-            result.append(curr)
+            if not curr.clickthrough:
+                result.append(curr)
             for c in curr.children:
                 q.append(c)
 
