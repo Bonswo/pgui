@@ -9,6 +9,7 @@ class actions(IntEnum):
     m3d = auto()
     m3u = auto()
     mouse_move = auto()
+    mwheel = auto()
 
 class Input():
     def __init__(self):
@@ -20,7 +21,8 @@ class Input():
             actions.m2u: [],
             actions.m3d: [],
             actions.m3u: [],
-            actions.mouse_move: []
+            actions.mouse_move: [],
+            actions.mwheel: []
         }
         self.was_hovered = []
 
@@ -46,25 +48,28 @@ class Input():
 
         for e in pg.event.get(pump=False):
             action = None
+            match e.type:
+                case pg.MOUSEBUTTONDOWN:
+                    if e.button == 1:
+                        action = actions.m1d
+                    elif e.button == 3:
+                        action = actions.m2d
+                    elif e.button == 2:
+                        action = actions.m3d
 
-            if e.type == pg.MOUSEBUTTONDOWN:
-                if e.button == 1:
-                    action = actions.m1d
-                elif e.button == 3:
-                    action = actions.m2d
-                elif e.button == 2:
-                    action = actions.m3d
+                case pg.MOUSEMOTION:
+                    action = actions.mouse_move
 
-            elif e.type == pg.MOUSEMOTION:
-                action = actions.mouse_move
+                case pg.MOUSEBUTTONUP:
+                    if e.button == 1:
+                        action = actions.m1u
+                    elif e.button == 3:
+                        action = actions.m2u
+                    elif e.button == 2:
+                        action = actions.m3u
 
-            elif e.type == pg.MOUSEBUTTONUP:
-                if e.button == 1:
-                    action = actions.m1u
-                elif e.button == 3:
-                    action = actions.m2u
-                elif e.button == 2:
-                    action = actions.m3u
+                case pg.MOUSEWHEEL:
+                    action = actions.mwheel
 
             if action:
                 for cb in self.subs[action]:
